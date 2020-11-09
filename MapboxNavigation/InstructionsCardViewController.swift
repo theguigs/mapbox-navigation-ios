@@ -171,6 +171,8 @@ open class InstructionsCardViewController: UIViewController {
         let remainingSteps = legProgress.remainingSteps
         guard let currentCardStep = remainingSteps.first else { return }
         
+        print("!!! indexPaths in updateVisibleInstructionCards \(indexPaths)")
+        
         for index in indexPaths.startIndex..<indexPaths.endIndex {
             let indexPath = indexPaths[index]
             if let container = instructionContainerView(at: indexPath), indexPath.row < remainingSteps.endIndex {
@@ -213,6 +215,9 @@ open class InstructionsCardViewController: UIViewController {
         let estimatedIndex = Int(round((collectionView.contentOffset.x + collectionView.contentInset.left) / (cardSize.width + 10.0)))
         let indexInBounds = max(0, min(itemCount - 1, estimatedIndex))
         
+        print("!!! snappedIndexPath estimated Index: \(estimatedIndex)")
+        print("!!! snappedIndexPath index in bounds: \(indexInBounds)")
+        
         return IndexPath(row: indexInBounds, section: 0)
     }
     
@@ -221,16 +226,19 @@ open class InstructionsCardViewController: UIViewController {
         
         let itemCount = steps?.count ?? 0
         let velocityThreshold: CGFloat = 0.4
+        print("!!! index before swipe: \(indexBeforeSwipe)")
         
         // TODO: FIX HARD-CODED LEFT AND RIGHT
-        let hasVelocityToSlideToNext = indexBeforeSwipe.row + 1 < itemCount && velocity.x > velocityThreshold
-        let hasVelocityToSlidePrev = indexBeforeSwipe.row - 1 >= 0 && velocity.x < -velocityThreshold
+        let hasVelocityToSlideToNext = UIApplication.shared.userInterfaceLayoutDirection == .leftToRight ? indexBeforeSwipe.row + 1 < itemCount && velocity.x > velocityThreshold : indexBeforeSwipe.row + 1 >= 0 && velocity.x < -velocityThreshold
+        let hasVelocityToSlidePrev = UIApplication.shared.userInterfaceLayoutDirection == .leftToRight ? indexBeforeSwipe.row - 1 >= 0 && velocity.x < -velocityThreshold : indexBeforeSwipe.row - 1 < itemCount && velocity.x > velocityThreshold
         let didSwipe = hasVelocityToSlideToNext || hasVelocityToSlidePrev
         
         let scrollTargetIndexPath: IndexPath!
         
         if didSwipe {
             if hasVelocityToSlideToNext {
+                scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row + 1, section: 0)
+            } else if hasVelocityToSlidePrev, UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft {
                 scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row + 1, section: 0)
             } else {
                 scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row - 1, section: 0)
@@ -244,6 +252,8 @@ open class InstructionsCardViewController: UIViewController {
                 scrollTargetIndexPath = indexBeforeSwipe
             }
         }
+        
+        print("!!! scrollTargetIndexPath: \(String(describing: scrollTargetIndexPath))")
         
         return scrollTargetIndexPath
     }
