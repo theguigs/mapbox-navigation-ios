@@ -212,11 +212,22 @@ open class InstructionsCardViewController: UIViewController {
             return IndexPath(row: 0, section: 0)
         }
         
-        let estimatedIndex = Int(round((collectionView.contentOffset.x + collectionView.contentInset.left) / (cardSize.width + 10.0)))
+        print("!!! item count: \(itemCount)")
+        let estimatedIndex: Int
+        if UIApplication.shared.userInterfaceLayoutDirection == .leftToRight {
+            estimatedIndex = Int(round((collectionView.contentOffset.x + collectionView.contentInset.left) / (cardSize.width + 10.0)))
+        } else {
+            // let sub = cardSize.width * CGFloat(itemCount - currentStepIndex!)
+            collectionView.semanticContentAttribute = .forceRightToLeft
+            estimatedIndex = Int(round((collectionView.contentOffset.x + collectionView.contentInset.right) / (cardSize.width + 10.0)))
+        }
         let indexInBounds = max(0, min(itemCount - 1, estimatedIndex))
         
+        print("!!! snappedIndexPath current step Index: \(String(describing: currentStepIndex))")
         print("!!! snappedIndexPath estimated Index: \(estimatedIndex)")
-        print("!!! snappedIndexPath index in bounds: \(indexInBounds)")
+        print("!!! snappedIndexPath contentOffset.x: \(collectionView.contentOffset.x)")
+        print("!!! snappedIndexPath collectionView.contentInset.left: \(collectionView.contentInset.left)")
+        print("!!! snappedIndexPath collectionView.contentInset.right: \(collectionView.contentInset.right)")
         
         return IndexPath(row: indexInBounds, section: 0)
     }
