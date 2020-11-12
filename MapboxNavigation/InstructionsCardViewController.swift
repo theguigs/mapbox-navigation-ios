@@ -214,20 +214,22 @@ open class InstructionsCardViewController: UIViewController {
         
         print("!!! item count: \(itemCount)")
         let estimatedIndex: Int
+        let blah = currentStepIndex ?? 0
+        let sub = cardSize.width * CGFloat(itemCount - blah)
         if UIApplication.shared.userInterfaceLayoutDirection == .leftToRight {
             estimatedIndex = Int(round((collectionView.contentOffset.x + collectionView.contentInset.left) / (cardSize.width + 10.0)))
         } else {
-            // let sub = cardSize.width * CGFloat(itemCount - currentStepIndex!)
-            collectionView.semanticContentAttribute = .forceRightToLeft
-            estimatedIndex = Int(round((collectionView.contentOffset.x + collectionView.contentInset.right) / (cardSize.width + 10.0)))
+            let blah = currentStepIndex ?? 0
+            let sub = cardSize.width * CGFloat(itemCount - blah)
+            estimatedIndex = abs(Int(round((collectionView.contentOffset.x - sub + collectionView.contentInset.right) / (cardSize.width + 10.0))))
         }
         let indexInBounds = max(0, min(itemCount - 1, estimatedIndex))
         
         print("!!! snappedIndexPath current step Index: \(String(describing: currentStepIndex))")
         print("!!! snappedIndexPath estimated Index: \(estimatedIndex)")
         print("!!! snappedIndexPath contentOffset.x: \(collectionView.contentOffset.x)")
-        print("!!! snappedIndexPath collectionView.contentInset.left: \(collectionView.contentInset.left)")
-        print("!!! snappedIndexPath collectionView.contentInset.right: \(collectionView.contentInset.right)")
+        print("!!! snappedIndexPath sub: \(sub)")
+        print("!!! snappedIndexPath contentOffset.x-sub: \(collectionView.contentOffset.x-sub)")
         
         return IndexPath(row: indexInBounds, section: 0)
     }
@@ -251,6 +253,7 @@ open class InstructionsCardViewController: UIViewController {
                 scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row + 1, section: 0)
             } else if hasVelocityToSlidePrev, UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft {
                 scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row + 1, section: 0)
+                print("!!! BLAHHHH")
             } else {
                 scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row - 1, section: 0)
             }
