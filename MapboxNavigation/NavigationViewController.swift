@@ -711,7 +711,9 @@ extension NavigationViewController: NavigationServiceDelegate {
             }
             print("!!! statuses: \(StatusView.statuses)")
             
-            showStatus(title: title, spinner: false, duration: 20, animated: true, interactive: false)
+            StatusView().manageStatuses()
+            
+            // showStatus(title: title, spinner: false, duration: 20, animated: true, interactive: false)
         } else {
             //Fallback on earlier versions
             return
