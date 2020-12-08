@@ -100,6 +100,11 @@ open class InstructionsCardViewController: UIViewController {
         instructionCollectionView.isPagingEnabled = true
         instructionCollectionView.translatesAutoresizingMaskIntoConstraints = false
         
+        if UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft {
+            instructionCollectionView.semanticContentAttribute = .forceLeftToRight
+            instructionCollectionView.transform = CGAffineTransform(scaleX: -1.0, y: 1.0)
+        }
+        
         addSubviews()
         setConstraints()
         addObservers()
@@ -121,10 +126,6 @@ open class InstructionsCardViewController: UIViewController {
     
     @objc func orientationDidChange(_ notification: Notification) {
         instructionsCardLayout.invalidateLayout()
-        
-        instructionsCardLayout.collectionView?.isPagingEnabled = false
-        instructionsCardLayout.collectionView?.scrollToItem(at: indexBeforeSwipe, at: .left, animated: true)
-        instructionsCardLayout.collectionView?.isPagingEnabled = true
     }
     
     func addSubviews() {
@@ -168,9 +169,7 @@ open class InstructionsCardViewController: UIViewController {
         guard let legProgress = routeProgress?.currentLegProgress else { return }
         let remainingSteps = legProgress.remainingSteps
         guard let currentCardStep = remainingSteps.first else { return }
-        
-        print("!!! indexPaths in updateVisibleInstructionCards \(indexPaths)")
-        
+                
         for index in indexPaths.startIndex..<indexPaths.endIndex {
             let indexPath = indexPaths[index]
             if let container = instructionContainerView(at: indexPath), indexPath.row < remainingSteps.endIndex {
@@ -183,21 +182,12 @@ open class InstructionsCardViewController: UIViewController {
     
     func snapToIndexPath(_ indexPath: IndexPath) {
         guard let itemCount = steps?.count, itemCount >= 0 && indexPath.row < itemCount else { return }
-        
-        let direction: UICollectionView.ScrollPosition = UIApplication.shared.userInterfaceLayoutDirection == .leftToRight ? .left : .right
-        if #available(iOS 14.0, *) {
-            instructionsCardLayout.collectionView?.isPagingEnabled = false
-            instructionsCardLayout.collectionView?.scrollToItem(at: indexPath, at: direction, animated: true)
-            instructionsCardLayout.collectionView?.isPagingEnabled = true
-            return
-        }
-        instructionsCardLayout.collectionView?.scrollToItem(at: indexPath, at: direction, animated: true)
+        instructionsCardLayout.collectionView?.scrollToItem(at: indexPath, at: .left, animated: true)
     }
     
     public func stopPreview() {
         guard isInPreview else { return }
-        let direction: UICollectionView.ScrollPosition = UIApplication.shared.userInterfaceLayoutDirection == .leftToRight ? .left : .right
-        instructionCollectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: direction, animated: false)
+        instructionCollectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .left, animated: false)
         isInPreview = false
     }
     
@@ -215,24 +205,9 @@ open class InstructionsCardViewController: UIViewController {
             return IndexPath(row: 0, section: 0)
         }
         
-        print("!!! item count: \(itemCount)")
-        let estimatedIndex: Int
-        let size = CGFloat(itemCount) * cardSize.width
-        
-        if UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft {
-            estimatedIndex = Int(round((size - collectionView.contentOffset.x + collectionView.contentInset.right) / (cardSize.width + 10.0)))
-        } else {
-            estimatedIndex = Int(round((collectionView.contentOffset.x + collectionView.contentInset.left) / (cardSize.width + 10.0)))
-        }
+        let estimatedIndex = Int(round((collectionView.contentOffset.x + collectionView.contentInset.left) / (cardSize.width + 10.0)))
         let indexInBounds = max(0, min(itemCount - 1, estimatedIndex))
-        
-        print("!!! current step Index: \(String(describing: currentStepIndex))")
-        print("!!! contentOffset.x: \(collectionView.contentOffset.x)")
-        print("!!! size: \(size)")
-        print("!!! size - contentOffset.x: \(size-collectionView.contentOffset.x)")
-        print("!!! estimated Index: \(estimatedIndex)")
-        print("!!! indexInBounds: \(indexInBounds)")
-        
+
         return IndexPath(row: indexInBounds, section: 0)
     }
     
@@ -241,11 +216,9 @@ open class InstructionsCardViewController: UIViewController {
         
         let itemCount = steps?.count ?? 0
         let velocityThreshold: CGFloat = 0.4
-        print("!!! index before swipe: \(indexBeforeSwipe)")
         
-        // TODO: FIX HARD-CODED LEFT AND RIGHT
-        let hasVelocityToSlideToNext = UIApplication.shared.userInterfaceLayoutDirection == .leftToRight ? indexBeforeSwipe.row + 1 < itemCount && velocity.x > velocityThreshold : indexBeforeSwipe.row + 1 >= 0 && velocity.x < -velocityThreshold
-        let hasVelocityToSlidePrev = UIApplication.shared.userInterfaceLayoutDirection == .leftToRight ? indexBeforeSwipe.row - 1 >= 0 && velocity.x < -velocityThreshold : indexBeforeSwipe.row - 1 < itemCount && velocity.x > velocityThreshold
+        let hasVelocityToSlideToNext = indexBeforeSwipe.row + 1 < itemCount && velocity.x > velocityThreshold
+        let hasVelocityToSlidePrev = indexBeforeSwipe.row - 1 >= 0 && velocity.x < -velocityThreshold
         let didSwipe = hasVelocityToSlideToNext || hasVelocityToSlidePrev
         
         let scrollTargetIndexPath: IndexPath!
@@ -254,30 +227,19 @@ open class InstructionsCardViewController: UIViewController {
             if hasVelocityToSlideToNext {
                 scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row + 1, section: 0)
                 print("!!! BOOO")
-            } else if hasVelocityToSlidePrev, UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft {
-                scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row + 1, section: 0)
-                print("!!! COOO")
             } else {
                 scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row - 1, section: 0)
             }
         } else {
-            if scrollView.contentOffset.x - contentOffsetBeforeSwipe.x < -cardSize.width / 2, UIApplication.shared.userInterfaceLayoutDirection == .leftToRight {
+            if scrollView.contentOffset.x - contentOffsetBeforeSwipe.x < -cardSize.width / 2 {
                 scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row - 1, section: 0)
-            } else if scrollView.contentOffset.x - contentOffsetBeforeSwipe.x > cardSize.width / 2, UIApplication.shared.userInterfaceLayoutDirection == .leftToRight {
+            } else if scrollView.contentOffset.x - contentOffsetBeforeSwipe.x > cardSize.width / 2 {
                 scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row + 1, section: 0)
-            } else if contentOffsetBeforeSwipe.x - scrollView.contentOffset.x < -cardSize.width / 2, UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft {
-                scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row + 1, section: 0)
-                print("DOOO")
-            } else if contentOffsetBeforeSwipe.x - scrollView.contentOffset.x > cardSize.width / 2, UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft {
-                scrollTargetIndexPath = IndexPath(row: indexBeforeSwipe.row - 1, section: 0)
-                print("FOOO")
             } else {
                 scrollTargetIndexPath = indexBeforeSwipe
             }
         }
-        
-        print("!!! scrollTargetIndexPath: \(String(describing: scrollTargetIndexPath))")
-        
+                
         return scrollTargetIndexPath
     }
 }
@@ -322,6 +284,10 @@ extension InstructionsCardViewController: UICollectionViewDataSource {
         let distance = firstStep ? distanceRemaining : step.distance
         cell.configure(for: step, distance: distance)
         
+        if UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft {
+            cell.transform = CGAffineTransform(scaleX: -1.0, y: 1.0)
+        }
+        
         return cell
     }
 }
@@ -329,8 +295,6 @@ extension InstructionsCardViewController: UICollectionViewDataSource {
 extension InstructionsCardViewController: UICollectionViewDelegateFlowLayout {
     public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         
-        print("!!! cardSize from InstructionsCardViewController: \(cardSize)")
-
         return cardSize
     }
 }
