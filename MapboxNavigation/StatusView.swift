@@ -51,7 +51,6 @@ public class StatusView: UIControl {
 
     public struct Status: Identifiable {
         public var id: String
-//        let title: String
         var spinner: Bool = false
         let duration: TimeInterval
         var animated: Bool = true
@@ -174,11 +173,12 @@ public class StatusView: UIControl {
         }
     }
     
-    func highestPriority(status: Status) {
+    // delete this or make it work better; get rid of loop if you do use it!
+    func temp1(status: Status) {
         if status.duration != .infinity {
             hideStatus(usingStatus: status)
         } else {
-            
+            hide(delay: status.duration)
         }
     }
     
