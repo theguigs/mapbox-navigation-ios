@@ -41,7 +41,7 @@ open class NavigationViewController: UIViewController, NavigationStatusPresenter
         }
     }
     
-    var authorizationChangeIsFirstCalled = true
+    var didChangeAuthorizationIsFirstCalled = true
     
     /**
      A `Route` object constructed by [MapboxDirections](https://docs.mapbox.com/ios/api/directions/).
@@ -722,13 +722,13 @@ extension NavigationViewController: NavigationServiceDelegate {
         
         if #available(iOS 14.0, *), accuracyAuthorization == .reducedAccuracy {
             addNewStatus(status: authorizationStatus)
-        } else if #available(iOS 14.0, *), previousAuthorizationValue == 1, authorizationChangeIsFirstCalled == false {
+        } else if #available(iOS 14.0, *), previousAuthorizationValue == 1, didChangeAuthorizationIsFirstCalled == false {
             hideStatus(usingStatus: authorizationStatus)
         } else {
             //Fallback on earlier versions
             return
         }
-        authorizationChangeIsFirstCalled = false
+        didChangeAuthorizationIsFirstCalled = false
     }
     
     // MARK: - Building Extrusion Highlighting
