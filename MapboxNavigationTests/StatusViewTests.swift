@@ -17,32 +17,48 @@ class StatusViewTests {
     let secondStatus = StatusView.Status(id: title, duration: 0.1, priority: StatusView.Priority(rawValue: 1))
     
     let title = NSLocalizedString("TEST_STATUS_3", bundle: .mapboxNavigation, value: "test status 3", comment: "the third status banner used for testing")
-    let thirdStatus = StatusView.Status(id: title, duration: 0.75, priority: StatusView.Priority(rawValue: 2))
+    let thirdStatus = StatusView.Status(id: title, duration: .infinity, priority: StatusView.Priority(rawValue: 2))
     
-    func testFirstWithSignificantDelay() {
+    func testWithSignificantDelay() {
         addNewStatus(status: firstStatus)
         let seconds = 4.0
         Dispatch.Queue.main.asyncAfter(deadline: .now() + seconds) {
-            assert(statusView.statuses.count == 0)
+            XCTAssertEqual(statusView.statuses.count, 0)
         }
     }
     
-    func testFirstWithDurationDelay() {
+    func testWithDurationDelay() {
         addNewStatus(status: firstStatus)
         let seconds = firstStatus.duration
         Dispatch.Queue.main.asyncAfter(deadline: .now() + seconds) {
-            assert(statusView.statuses.count == 0)
+            XCTAssertEqual(statusView.statuses.count, 0)
         }
     }
     
     func testFirstAndSecond() {
         addNewStatus(status: firstStatus)
         addNewStatus(status: secondStatus)
-        assert(statusView.statuses.count == 2)
+        XCTAssertEqual(statusView.statuses.count, 2)
+        Dispatch.Queue.main.asyncAfter(deadline: .now() + firstStatus.duration + secondStatus.duration) {
+            XCTAssertEqual(statusView.statuses.count, 0)
+        }
     }
     
-    func testSecondAndThird() {
-        
+    func testFirstAndSecondWithDelay() {
+        addNewStatus(status: firstStatus)
+        Dispatch.Queue.main.asyncAfter(deadline: .now() + firstStatus.duration) {
+            addNewStatus(status: secondStatus)
+            XCTAssertEqual(statusView.statuses.count, 1)
+        }
+    }
+    
+    func testFirstAndThird() {
+        addNewStatus(status: firstStatus)
+        addNewStatus(status: thirdStatus)
+        XCTAssertEqual(statusView.status.count, 2)
+        DispatchQueue.main.asyncAfter(deadline: .now() + firstStatus.durationze) {
+            XCTAssertEqual(statusView.statuses.count, 1)
+        }
     }
     
 }
