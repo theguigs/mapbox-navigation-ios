@@ -20,10 +20,10 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-//        .package(name: "MapboxAccounts", url: "https://github.com/mapbox/mapbox-accounts-ios/", .branch("1ec5-v2.3.1")),
-        .package(name: "MapboxDirections", url: "https://github.com/mapbox/mapbox-directions-swift/", from: "1.2.0-alpha.3"),
+        .package(name: "MapboxAccounts", url: "https://github.com/mapbox/mapbox-accounts-ios/", .branch("1ec5-v2.3.1")),
+//        .package(name: "MapboxDirections", url: "https://github.com/mapbox/mapbox-directions-swift/", from: "1.2.0-alpha.3"),
 //        .package(name: "MapboxMobileEvents", url: "https://github.com/mapbox/mapbox-events-ios/", from: "0.10.6"),
-//        .package(url: "https://github.com/mapbox/mapbox-navigation-native-ios/", from: "28.1.0"),
+//        .package(name: "MapboxNavigationNative", url: "https://github.com/mapbox/mapbox-navigation-native-ios/", from: "28.1.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -32,8 +32,8 @@ let package = Package(
             name: "MapboxCoreNavigation",
             dependencies: [
                 "CMapboxCoreNavigation",
-//                "MapboxAccounts",
-                "MapboxDirections",
+                "MapboxAccounts",
+//                "MapboxDirections",
 //                "MapboxMobileEvents",
 //                "MapboxNavigationNative",
             ],
@@ -41,7 +41,7 @@ let package = Package(
         .target(
             name: "CMapboxCoreNavigation",
             dependencies: [
-//                "MapboxAccounts",
+                "MapboxAccounts",
             ])
     ]
 )
