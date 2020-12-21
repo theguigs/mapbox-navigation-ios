@@ -20,6 +20,11 @@ open class RouteController: NSObject {
         public static let shouldPreventReroutesWhenArrivingAtWaypoint: Bool = true
         public static let shouldDisableBatteryMonitoring: Bool = true
     }
+
+    lazy var navigator: Navigator = {
+        let settingsProfile = SettingsProfile(application: ProfileApplication.kMobile, platform: ProfilePlatform.KIOS)
+        return Navigator(profile: settingsProfile, config: NavigatorConfig(), customConfig: "", tilesConfig: TilesConfig())
+    }()
     
     public var indexedRoute: IndexedRoute {
         get {
@@ -63,8 +68,6 @@ open class RouteController: NSObject {
     var previousArrivalWaypoint: Waypoint?
     
     var isFirstLocation: Bool = true
-    
-    var navigator: Navigator
     
     /**
      Details about the user’s progress along the current route, leg, and step.
@@ -147,33 +150,12 @@ open class RouteController: NSObject {
         return snappedLocation ?? rawLocation
     }
     
-    required public init(along route: Route,
-                         routeIndex: Int,
-                         options: RouteOptions,
-                         directions: Directions = Directions.shared,
-                         dataSource source: RouterDataSource,
-                         tilesVersion: String? = nil) {
+    required public init(along route: Route, routeIndex: Int, options: RouteOptions, directions: Directions = Directions.shared, dataSource source: RouterDataSource) {
         self.directions = directions
         self._routeProgress = RouteProgress(route: route, routeIndex: routeIndex, options: options)
         self.dataSource = source
         self.refreshesRoute = options.profileIdentifier == .automobileAvoidingTraffic && options.refreshingEnabled
         UIDevice.current.isBatteryMonitoringEnabled = true
-        
-        let settingsProfile = SettingsProfile(application: ProfileApplication.kMobile, platform: ProfilePlatform.KIOS)
-        var tilesConfig = TilesConfig()
-        
-        // In case if `tilesVersion` was provided configure `Navigator` to use it, so that sideloaded
-        // tiles (e.g. via Offline Service) can be used.
-        if let tilesVersion = tilesVersion {
-            let endpointConfig = TileEndpointConfiguration(directions: directions, tilesVersion: tilesVersion)
-            tilesConfig = TilesConfig(tilesPath: Bundle.mapboxCoreNavigation.suggestedTileURL(version: tilesVersion)?.path ?? "",
-                                      inMemoryTileCache: nil,
-                                      mapMatchingSpatialCache: nil,
-                                      threadsCount: nil,
-                                      endpointConfig: endpointConfig)
-        }
-        
-        navigator = Navigator(profile: settingsProfile, config: NavigatorConfig(), customConfig: "", tilesConfig: tilesConfig)
         
         super.init()
         
@@ -260,7 +242,7 @@ open class RouteController: NSObject {
         let status = navigator.status(at: location.timestamp)
         
         // Notify observers if the step’s remaining distance has changed.
-        update(progress: routeProgress, with: CLLocation(status.location), rawLocation: location)
+        update(progress: routeProgress, with: CLLocation(status.location), rawLocation: location, upcomingRouteAlerts: status.upcomingRouteAlerts)
         
         let willReroute = !userIsOnRoute(location, status: status) && delegate?.router(self, shouldRerouteFrom: location)
             ?? DefaultBehavior.shouldRerouteFromLocation
@@ -354,8 +336,9 @@ open class RouteController: NSObject {
         }
     }
     
-    private func update(progress: RouteProgress, with location: CLLocation, rawLocation: CLLocation) {
+    private func update(progress: RouteProgress, with location: CLLocation, rawLocation: CLLocation, upcomingRouteAlerts routeAlerts: [UpcomingRouteAlert]) {
         progress.updateDistanceTraveled(with: rawLocation)
+        progress.upcomingRouteAlerts = routeAlerts.map { RouteAlert($0) }
         
         //Fire the delegate method
         delegate?.router(self, didUpdate: progress, with: location, rawLocation: rawLocation)

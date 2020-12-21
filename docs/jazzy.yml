@@ -94,6 +94,7 @@ custom_categories:
       - BottomBannerViewControllerDelegate
       - SpeedLimitView
       - UserPuckCourseView
+      - UserHaloCourseView
       - CourseUpdatable
       - NavigationComponent
   - name: Guidance Instruction UI
@@ -127,6 +128,7 @@ custom_categories:
       - RouteControllerMaximumAllowedDegreeOffsetForTurnCompletion
       - RouteControllerMaximumDistanceBeforeRecalculating
       - RouteControllerUserLocationSnappingDistance
+      - MapOrnamentPosition
       - MBCongestionAttribute
       - MBCurrentLegAttribute
       - MBRouteLineWidthByZoomLevel

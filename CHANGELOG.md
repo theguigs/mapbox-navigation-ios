@@ -1,14 +1,58 @@
 # Changes to the Mapbox Navigation SDK for iOS
 
+## v1.2.0
+
+### Packaging
+
+* Increased the minimum versions of `MapboxNavigationNative` to v26.3, `MapboxCommon` to v9.1.0 and `MapboxDirections` to v1.2. ([#2694](https://github.com/mapbox/mapbox-navigation-ios/pull/2694))
+* Added a Ukrainian localization. ([#2735](https://github.com/mapbox/mapbox-navigation-ios/pull/2735))
+
+### Map
+
+* Added the ability to customize the floating buttons in navigation view. The floating buttons could be edited with `NavigationViewController.floatingButtons`, the position of the floating buttons could be edited with `NavigationViewController.floatingButtonsPosition`.  ([#2763](https://github.com/mapbox/mapbox-navigation-ios/pull/2763))
+* Fixed an issue which was causing clear map button disappearance in the example app when selecting the route. ([#2718](https://github.com/mapbox/mapbox-navigation-ios/pull/2718))
+* Fixed an issue where maneuver icon was not shown after selecting specific step. ([#2728](https://github.com/mapbox/mapbox-navigation-ios/pull/2728))
+* Added the ability to style each route line differently using such delegate methods ([#2719](https://github.com/mapbox/mapbox-navigation-ios/pull/2719)):
+  * `NavigationMapViewDelegate.navigationMapView(_:mainRouteStyleLayerWithIdentifier:source:)` to style the main route.
+  * `NavigationMapViewDelegate.navigationMapView(_:mainRouteCasingStyleLayerWithIdentifier:source:)` to style the casing of the main route.
+  * `NavigationMapViewDelegate.navigationMapView(_:alternativeRouteStyleLayerWithIdentifier:source:)` to style alternative route.
+  * `NavigationMapViewDelegate.navigationMapView(_:alternativeRouteCasingStyleLayerWithIdentifier:source:)` to style the casing of alternative route.
+* Fixed an issue where the route line periodically peeked out from behind the user puck even though `NavigationViewController.routeLineTracksTraversal` was enabled. ([#2737](https://github.com/mapbox/mapbox-navigation-ios/pull/2737))
+* Created the `UserHaloCourseView` similar to `UserCourseView` for approximate location on iOS 14 during the navigation to represent user location. Allow the switch between `UserHaloCourseView` and `UserCourseView` when precise mode is changed. ([#2664](https://github.com/mapbox/mapbox-navigation-ios/pull/2664))
+
+### Instruction banners
+
+* Fixed an issue which was preventing the ability to customize the bottom banner height. ([#2705](https://github.com/mapbox/mapbox-navigation-ios/pull/2705))
+* Fixed an issue which was preventing the ability to scroll between instructions cards on iOS 14 using workaround. ([#2755](https://github.com/mapbox/mapbox-navigation-ios/pull/2755))
+* Fixed an instructions cards layout issue that arose when changing orientation (portrait to landscape). ([#2755](https://github.com/mapbox/mapbox-navigation-ios/pull/2755))
+* Fixed swiping for right-to-left languages for the traditional top banner to be more intuitive. ([#2755](https://github.com/mapbox/mapbox-navigation-ios/pull/2755))
+
+### Location tracking
+
+* Fixed potential crashes when using `PassiveLocationManager` or `PassiveLocationDataSource`. ([#2694](https://github.com/mapbox/mapbox-navigation-ios/pull/2694))
+* Fixed repeated rerouting when traveling alongside a freeway off-ramp. ([#2694](https://github.com/mapbox/mapbox-navigation-ios/pull/2694))
+* Fixed an issue where `RouteController` snapped the user’s location to the opposite side of a divided highway. ([#2694](https://github.com/mapbox/mapbox-navigation-ios/pull/2694))
+* Fixed an issue where `RouteController` got stuck after making a U-turn. ([#2694](https://github.com/mapbox/mapbox-navigation-ios/pull/2694))
+
+### Other changes
+
+* The user can now report feedback about an incorrect speed limit in the speed limit view. ([#2725](https://github.com/mapbox/mapbox-navigation-ios/pull/2725))
+* Added the `RouteProgress.upcomingRouteAlerts` property to track upcoming points along the route experiencing conditions that may require the user’s attention. The `UpcomingRouteAlertInfo.alert` property contains one of the following types with more details about the alert: `Incident`, `TunnelInfo`, `BorderCrossingInfo`, `TollCollection`, and `RestStop`. ([#2694](https://github.com/mapbox/mapbox-navigation-ios/pull/2694))
+* Added a new `NavigationMapView.roadClassesWithOverriddenCongestionLevels` property. For any road class in it all route segments with an `CongestionLevel.unknown` traffic congestion level and a matching `Intersection.outletMapboxStreetsRoadClass` will be replaced with the `CongestionLevel.low` congestion level. ([#2741](https://github.com/mapbox/mapbox-navigation-ios/pull/2741)) 
+* Added a new `RouteLeg.streetsRoadClasses` property, which allows to get a collection of `MapboxStreetsRoadClass` objects for specific `RouteLeg`. ([#2741](https://github.com/mapbox/mapbox-navigation-ios/pull/2741)) 
+* `NavigationAnnotation` was made public to provide a way to detect annotations created by `NavigationMapView`. ([#2769](https://github.com/mapbox/mapbox-navigation-ios/pull/2769))
+
 ## v1.1.0
 
 ### Packaging
 
 * MapboxNavigationNative dependency was updated to v22.0.5 and MapboxCommon to v7.1.2. ([#2648](https://github.com/mapbox/mapbox-navigation-ios/pull/2648))
 
-### Offline
+### User location
 
-* Added Offline Service support for Maps and Navigation. To allow Mapbox Maps SDK to pick up downloaded regions, `OfflineService` has to be instantiated prior to `MGLMapView`. In case of offline navigation `MapboxNavigationService` and `PassiveLocationDataSource` has to contain `tilesVersion` parameter of downloaded Navigation region. Undeprecated `NavigationDirections`, `OfflineRouteCompletionHandler` and `NavigationDirections.calculate(_:offline:completionHandler:)` and introduced `NavigationDirections.configureRouter(tilesVersion:)` to be able to request route in offline. ([#2653](https://github.com/mapbox/mapbox-navigation-ios/pull/2653))
+* Fixed issues which was causing unsmooth user puck updates on iOS and inability to zoom-in to current location at the start of navigation on CarPlay by updating to Mapbox Maps SDK for iOS v6.2.2. ([#2699](https://github.com/mapbox/mapbox-navigation-ios/pull/2699))
+* Added the `NavigationServiceDelegate.navigationService(_:didChangeAuthorizationFor:)` method and `Notification.Name.locationAuthorizationDidChange` to detect when the user changes the Location Services permissions for the current application, including for approximate location on iOS 14. ([#2693](https://github.com/mapbox/mapbox-navigation-ios/pull/2693))
+* When approximate location is enabled on iOS 14, a banner appears reminding the user to disable approximate location to continue navigating. ([#2693](https://github.com/mapbox/mapbox-navigation-ios/pull/2693))
 
 ### Other changes
 
@@ -16,18 +60,19 @@
 * Fixed an issue where `NavigationMapView` redrew at a low frame rate even when the device was plugged in. ([#2643](https://github.com/mapbox/mapbox-navigation-ios/pull/2643))
 * Fixed an issue where the route line flickered when refreshing. ([#2642](https://github.com/mapbox/mapbox-navigation-ios/pull/2642))
 * Fixed an issue where the End of route view UI is broken prior to iOS 11. ([#2690](https://github.com/mapbox/mapbox-navigation-ios/pull/2690))
+* Fixed an issue where completed waypoints remained on map after rerouting. ([#2378](https://github.com/mapbox/mapbox-navigation-ios/pull/2378))
+* Fixed an issue where positioning icon was not highlighted on CarPlay when using iOS 14.0. ([#2697](https://github.com/mapbox/mapbox-navigation-ios/pull/2697))
+* Fixed an issue where ETA label font was too small during turn-by-turn navigation. ([#2679](https://github.com/mapbox/mapbox-navigation-ios/pull/2679))
+* Fixed an issue with `NavigationMapViewDelegate.navigationMapView(_:shapeFor:)` and `NavigationMapViewDelegate.navigationMapView(_:simplifiedShapeFor:)` methods were not correctly called for route shape customization ([#2623](https://github.com/mapbox/mapbox-navigation-ios/pull/2623))
+* Fixed an issue where the banner indicating simulation mode displayed a very large speed factor in the Hebrew location. ([#2714](https://github.com/mapbox/mapbox-navigation-ios/pull/2714))
+* Fixed an issue where incorrect speed multiplier value was shown after arriving to the intermediate waypoint. ([#2710](https://github.com/mapbox/mapbox-navigation-ios/pull/2710))
 
-## v1.0.1
-
-### User location
-
-* Fixed issues which was causing unsmooth user puck updates on iOS and inability to zoom-in to current location at the start of navigation on CarPlay by updating to Mapbox Maps SDK for iOS v6.2.2. ([#2699](https://github.com/mapbox/mapbox-navigation-ios/pull/2699))
 
 ## v1.0.0
 
 ### Packaging
 
-* By default, usage of Mapbox APIs is now [billed](https://www.mapbox.com/pricing/#navmaus) together based on [monthly active users](https://docs.mapbox.com/help/glossary/monthly-active-users/) rather than individually by HTTP request. Learn more in the [pricing by product documentation](https://docs.mapbox.com/accounts/overview/pricing/#navigation-sdk-for-ios-and-android). If you prefer to still use request-based billing, set the `MBXNavigationBillingMethod` key in Info.plist to `request`. ([#2405](https://github.com/mapbox/mapbox-navigation-ios/pull/2405))
+* By default, usage of Mapbox APIs is now [billed](https://www.mapbox.com/pricing/#navmaus) together based on [monthly active users](https://docs.mapbox.com/help/glossary/monthly-active-users/) rather than individually by HTTP request. Learn more in the [pricing by product documentation](https://docs.mapbox.com/accounts/overview/pricing/#navigation-sdk-for-ios-and-android). ([#2405](https://github.com/mapbox/mapbox-navigation-ios/pull/2405))
 * Carthage v0.35 or above is now required for installing this SDK if you use Carthage. ([`81a36d0`](https://github.com/mapbox/mapbox-navigation-ios/commit/81a36d090e8a0602b7144ee7697b7857675b496f)) 
 * MapboxNavigation depends on Mapbox Maps SDK for iOS v6.0.0, and MapboxCoreNavigation depends on builds of MapboxNavigationNative and MapboxCommon that require authentication. Before CocoaPods or Carthage can download Mapbox.framework, MapboxNavigationNative.framework, and MapboxCommon.framework, you need to create a special-purpose access token. See [the updated installation instructions in the readme](./README.md#installing-the-latest-prerelease) for more details. ([#2437](https://github.com/mapbox/mapbox-navigation-ios/pull/2437), [#2477](https://github.com/mapbox/mapbox-navigation-ios/pull/2477))
 * If you install this SDK using Carthage, you need to also add MapboxCommon.framework to your application target’s Embed Frameworks build phase. ([#2477](https://github.com/mapbox/mapbox-navigation-ios/pull/2477))
