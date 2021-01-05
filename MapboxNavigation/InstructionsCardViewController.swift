@@ -100,12 +100,7 @@ open class InstructionsCardViewController: UIViewController {
         instructionCollectionView.backgroundColor = .clear
         instructionCollectionView.isPagingEnabled = true
         instructionCollectionView.translatesAutoresizingMaskIntoConstraints = false
-        
-        if UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft {
-            instructionCollectionView.semanticContentAttribute = .forceLeftToRight
-            instructionCollectionView.transform = CGAffineTransform(scaleX: -1.0, y: 1.0)
-        }
-        
+
         addSubviews()
         setConstraints()
         addObservers()
@@ -127,12 +122,7 @@ open class InstructionsCardViewController: UIViewController {
     
     @objc func orientationDidChange(_ notification: Notification) {
         instructionsCardLayout.invalidateLayout()
-        if UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft {
-            instructionsCardLayout.collectionView?.visibleCells.forEach { cell in guard let cell = cell as? UICollectionViewCell else { return }
-                cell.transform = CGAffineTransform(scaleX: -1.0, y: 1.0)
-            }
-        }
-      handlePagingforScrollToItem(indexPath: indexBeforeSwipe)
+        handlePagingforScrollToItem(indexPath: indexBeforeSwipe)
     }
     
     open override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -305,11 +295,13 @@ extension InstructionsCardViewController: UICollectionViewDataSource {
         let distance = firstStep ? distanceRemaining : step.distance
         cell.configure(for: step, distance: distance)
         
-        if UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft {
-            cell.transform = CGAffineTransform(scaleX: -1.0, y: 1.0)
-        }
-        
         return cell
+    }
+}
+
+extension UICollectionViewFlowLayout {
+    open override var flipsHorizontallyInOppositeLayoutDirection: Bool {
+        return true
     }
 }
 
