@@ -84,7 +84,11 @@ public class CarPlayNavigationViewController: UIViewController, NavigationMapVie
      traversed section of a route, override the `traversedRouteColor` property
      for the `NavigationMapView.appearance()`.
      */
-    public var routeLineTracksTraversal: Bool = false
+    public var routeLineTracksTraversal: Bool = false {
+        didSet {
+            mapView?.routeLineTracksTraversal = routeLineTracksTraversal
+        }
+    }
     
     var edgePadding: UIEdgeInsets {
         let padding:CGFloat = 15
@@ -288,7 +292,7 @@ public class CarPlayNavigationViewController: UIViewController, NavigationMapVie
             } else if tracksUserCourse && !newValue {
                 isOverviewingRoutes = !isPanningAway
                 guard let userLocation = self.navigationService.router.location,
-                    let shape = navigationService.route.shape else {
+                      let shape = navigationService.route.shape else {
                     return
                 }
                 mapView?.enableFrameByFrameCourseViewTracking(for: 1)
@@ -341,8 +345,7 @@ public class CarPlayNavigationViewController: UIViewController, NavigationMapVie
         let stepEstimates = CPTravelEstimates(distanceRemaining: stepDistance, timeRemaining: stepProgress.durationRemaining)
         carSession.updateEstimates(stepEstimates, for: maneuver)
         
-        if let compassView = self.compassView,
-            !compassView.isHidden {
+        if let compassView = self.compassView, !compassView.isHidden {
             compassView.course = location.course
         }
         
@@ -352,6 +355,8 @@ public class CarPlayNavigationViewController: UIViewController, NavigationMapVie
         }
         
         if routeLineTracksTraversal {
+            mapView?.updateUpcomingRoutePointIndex(routeProgress: routeProgress)
+            mapView?.updateTraveledRouteLine(location.coordinate)
             mapView?.updateRoute(routeProgress)
         }
     }
@@ -455,11 +460,11 @@ public class CarPlayNavigationViewController: UIViewController, NavigationMapVie
     
     func createFeedbackUI() -> CPGridTemplate {
         let feedbackItems: [FeedbackItem] = [FeedbackType.incorrectVisual(subtype: nil),
-                                            FeedbackType.confusingAudio(subtype: nil),
-                                            FeedbackType.illegalRoute(subtype: nil),
-                                            FeedbackType.roadClosure(subtype: nil),
-                                            FeedbackType.routeQuality(subtype: nil),
-                                            FeedbackType.positioning(subtype: nil)].map { $0.generateFeedbackItem() }
+                                             FeedbackType.confusingAudio(subtype: nil),
+                                             FeedbackType.illegalRoute(subtype: nil),
+                                             FeedbackType.roadClosure(subtype: nil),
+                                             FeedbackType.routeQuality(subtype: nil),
+                                             FeedbackType.positioning(subtype: nil)].map { $0.generateFeedbackItem() }
         
         let feedbackButtonHandler: (_: CPGridButton) -> Void = { [weak self] (button) in
             self?.carInterfaceController.popTemplate(animated: true)

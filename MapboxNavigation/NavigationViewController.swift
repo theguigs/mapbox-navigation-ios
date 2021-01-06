@@ -1,16 +1,27 @@
 import UIKit
 import MapboxCoreNavigation
 import MapboxDirections
-import MapboxSpeech
 import AVFoundation
-import UserNotifications
 import MobileCoreServices
-import Mapbox
 
 /**
  A container view controller is a view controller that behaves as a navigation component; that is, it responds as the user progresses along a route according to the `NavigationServiceDelegate` protocol.
  */
 public typealias ContainerViewController = UIViewController & NavigationComponent
+
+/**
+ The position of speed limit view and floating buttons, including the overview, mute and feedback report in a navigation view.
+ */
+public enum MapOrnamentPosition {
+    /**
+     The top-left corner when using a left-to-right language or the top-right corner when using a right-to-left language.
+     */
+    case topLeading
+    /**
+     The top-right corner when using a left-to-right language or the top-left corner when using a right-to-left language.
+     */
+    case topTrailing
+}
 
 /**
  `NavigationViewController` is a fully-featured user interface for turn-by-turn navigation. Do not confuse it with the `NavigationController` class in UIKit.
@@ -182,7 +193,7 @@ open class NavigationViewController: UIViewController, NavigationStatusPresenter
 
     /**
      Controls whether or not the FeedbackViewController shows a second level of detail for feedback items.
-    */
+     */
     public var detailedFeedbackEnabled: Bool = false {
         didSet {
             mapViewController?.detailedFeedbackEnabled = detailedFeedbackEnabled
@@ -202,6 +213,32 @@ open class NavigationViewController: UIViewController, NavigationStatusPresenter
     var topViewController: ContainerViewController?
     
     var bottomViewController: ContainerViewController?
+    
+    /**
+     The position of floating buttons in a navigation view. The default value is `MapOrnamentPosition.topTrailing`.
+     */
+    open var floatingButtonsPosition: MapOrnamentPosition? {
+        get {
+            return mapViewController?.floatingButtonsPosition
+        }
+        set {
+            if let newPosition = newValue {
+                mapViewController?.floatingButtonsPosition = newPosition
+            }
+        }
+    }
+    
+    /**
+     The  floating buttons in an array of UIButton in navigation view. The default floating buttons include the overview, mute and feedback report button. The default type of the floatingButtons is `FloatingButton`, which is declared with `FloatingButton.rounded(image:selectedImage:size:)` to be consistent.
+     */
+    open var floatingButtons: [UIButton]? {
+        get {
+            return mapViewController?.floatingButtons
+        }
+        set {
+            mapViewController?.floatingButtons = newValue
+        }
+    }
     
     var navigationComponents: [NavigationComponent] {
         var components: [NavigationComponent] = []
@@ -721,8 +758,10 @@ extension NavigationViewController: NavigationServiceDelegate {
             addNewStatus(status: authorizationStatus)
         } else if #available(iOS 14.0, *), previousAuthorizationValue == 1, didChangeAuthorizationIsFirstCalled == false {
             hideStatus(using: authorizationStatus)
+            mapView?.reducedAccuracyActivatedMode = true
         } else {
             //Fallback on earlier versions
+            mapView?.reducedAccuracyActivatedMode = false
             return
         }
         didChangeAuthorizationIsFirstCalled = false
@@ -837,27 +876,33 @@ extension NavigationViewController: TopBannerViewControllerDelegate {
             if banner.isDisplayingPreviewInstructions {
                 mapViewController?.recenter(self)
             }
-        
-        case .right where !banner.isDisplayingSteps:
-            guard let currentStepIndex = banner.currentPreviewStep?.1 else { return }
-            let remainingSteps = progress.remainingSteps
-            let prevStepIndex = currentStepIndex.advanced(by: -1)
-            guard prevStepIndex >= 0 else { return }
-            
-            let prevStep = remainingSteps[prevStepIndex]
-            preview(step: prevStep, in: banner, remaining: remainingSteps, route: route)
-            
-        case .left where !banner.isDisplayingSteps:
-            let remainingSteps = navigationService.router.routeProgress.remainingSteps
-            let currentStepIndex = banner.currentPreviewStep?.1
-            let nextStepIndex = currentStepIndex?.advanced(by: 1) ?? 0
-            guard nextStepIndex < remainingSteps.count else { return }
-            
-            let nextStep = remainingSteps[nextStepIndex]
-            preview(step: nextStep, in: banner, remaining: remainingSteps, route: route)
-            
         default:
-            return
+            break
+        }
+        
+        if !banner.isDisplayingSteps {
+            switch (direction, UIApplication.shared.userInterfaceLayoutDirection) {
+            case (.right, .leftToRight), (.left, .rightToLeft):
+                guard let currentStepIndex = banner.currentPreviewStep?.1 else { return }
+                let remainingSteps = progress.remainingSteps
+                let prevStepIndex = currentStepIndex.advanced(by: -1)
+                guard prevStepIndex >= 0 else { return }
+                
+                let prevStep = remainingSteps[prevStepIndex]
+                preview(step: prevStep, in: banner, remaining: remainingSteps, route: route)
+                
+            case (.left, .leftToRight), (.right, .rightToLeft):
+                let remainingSteps = navigationService.router.routeProgress.remainingSteps
+                let currentStepIndex = banner.currentPreviewStep?.1
+                let nextStepIndex = currentStepIndex?.advanced(by: 1) ?? 0
+                guard nextStepIndex < remainingSteps.count else { return }
+                
+                let nextStep = remainingSteps[nextStepIndex]
+                preview(step: nextStep, in: banner, remaining: remainingSteps, route: route)
+            
+            default:
+                break
+            }
         }
     }
     

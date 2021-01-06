@@ -15,6 +15,24 @@ class RouteMapViewController: UIViewController {
     var topBannerContainerView: BannerContainerView { return navigationView.topBannerContainerView }
     var bottomBannerContainerView: BannerContainerView { return navigationView.bottomBannerContainerView }
     
+    var floatingButtonsPosition: MapOrnamentPosition {
+        get {
+            return navigationView.floatingButtonsPosition
+        }
+        set {
+            navigationView.floatingButtonsPosition = newValue
+        }
+    }
+    
+    var floatingButtons: [UIButton]? {
+        get {
+            return navigationView.floatingButtons
+        }
+        set {
+            navigationView.floatingButtons = newValue
+        }
+    }
+    
     lazy var endOfRouteViewController: EndOfRouteViewController = {
         let storyboard = UIStoryboard(name: "Navigation", bundle: .mapboxNavigation)
         let viewController = storyboard.instantiateViewController(withIdentifier: "EndOfRouteViewController") as! EndOfRouteViewController
@@ -97,7 +115,11 @@ class RouteMapViewController: UIViewController {
         return UIEdgeInsets(top: topBannerContainerView.bounds.height, left: 20, bottom: bottomBannerContainerView.bounds.height, right: 20)
     }
     
-    var routeLineTracksTraversal = false
+    var routeLineTracksTraversal = false {
+        didSet {
+            mapView.routeLineTracksTraversal = routeLineTracksTraversal
+        }
+    }
 
     typealias LabelRoadNameCompletionHandler = (_ defaultRaodNameAssigned: Bool) -> Void
 
@@ -105,7 +127,7 @@ class RouteMapViewController: UIViewController {
     
     /**
      A Boolean value that determines whether the map altitude should change based on internal conditions.
-    */
+     */
     var suppressAutomaticAltitudeChanges: Bool = false
 
     convenience init(navigationService: NavigationService, delegate: RouteMapViewControllerDelegate? = nil, topBanner: ContainerViewController, bottomBanner: ContainerViewController) {
@@ -131,7 +153,6 @@ class RouteMapViewController: UIViewController {
         bottomContainer.backgroundColor = .clear
         
         view.bringSubviewToFront(topBannerContainerView)
-
     }
 
     override func loadView() {
@@ -233,7 +254,6 @@ class RouteMapViewController: UIViewController {
         mapView.tracksUserCourse = true
         mapView.enableFrameByFrameCourseViewTracking(for: 3)
         isInOverviewMode = false
-
         
         mapView.updateCourseTracking(location: mapView.userLocationForCourseTracking)
         updateCameraAltitude(for: router.routeProgress)
@@ -257,7 +277,7 @@ class RouteMapViewController: UIViewController {
     @objc func toggleOverview(_ sender: Any) {
         mapView.enableFrameByFrameCourseViewTracking(for: 3)
         if let shape = router.route.shape,
-            let userLocation = router.location {
+           let userLocation = router.location {
             mapView.setOverheadCameraView(from: userLocation, along: shape, for: contentInset(forOverviewing: true))
         }
         isInOverviewMode = true
@@ -498,7 +518,7 @@ class RouteMapViewController: UIViewController {
         guard waypoint.name == nil else { return populated(waypoint) }
         let location = CLLocation(latitude: waypoint.coordinate.latitude, longitude: waypoint.coordinate.longitude)
         CLGeocoder().reverseGeocodeLocation(location) { (places, error) in
-        guard let place = places?.first, let placeName = place.name, error == nil else { return }
+            guard let place = places?.first, let placeName = place.name, error == nil else { return }
             let named = Waypoint(coordinate: waypoint.coordinate, name: placeName)
             return populated(named)
         }
@@ -534,6 +554,8 @@ extension RouteMapViewController: NavigationComponent {
         }
         
         if routeLineTracksTraversal {
+            mapView.updateUpcomingRoutePointIndex(routeProgress: progress)
+            mapView.updateTraveledRouteLine(location.coordinate)
             mapView.updateRoute(progress)
         }
         
@@ -576,6 +598,8 @@ extension RouteMapViewController: NavigationComponent {
     func navigationService(_ service: NavigationService, didRefresh routeProgress: RouteProgress) {
         mapView.show([routeProgress.route], legIndex: routeProgress.legIndex)
         if routeLineTracksTraversal {
+            mapView.updateUpcomingRoutePointIndex(routeProgress: routeProgress)
+            mapView.updateTraveledRouteLine(router.location?.coordinate)
             mapView.updateRoute(routeProgress)
         }
     }
@@ -706,15 +730,15 @@ extension RouteMapViewController: NavigationViewDelegate {
 
     func labelCurrentRoadFeature(at location: CLLocation) {
         guard let style = mapView.style, let stepShape = router.routeProgress.currentLegProgress.currentStep.shape, !stepShape.coordinates.isEmpty else {
-                return
+            return
         }
 
         let closestCoordinate = location.coordinate
         let roadLabelStyleLayerIdentifier = "\(identifierNamespace).roadLabels"
         var streetsSources: [MGLVectorTileSource] = style.sources.compactMap {
             $0 as? MGLVectorTileSource
-            }.filter {
-                $0.isMapboxStreets
+        }.filter {
+            $0.isMapboxStreets
         }
 
         // Add Mapbox Streets if the map does not already have it
@@ -804,8 +828,8 @@ extension RouteMapViewController: NavigationViewDelegate {
         var currentShieldName: NSAttributedString?, currentRoadName: String?
 
         if let ref = line.attribute(forKey: "ref") as? String,
-            let shield = line.attribute(forKey: "shield") as? String,
-            let reflen = line.attribute(forKey: "reflen") as? Int {
+           let shield = line.attribute(forKey: "shield") as? String,
+           let reflen = line.attribute(forKey: "reflen") as? Int {
             let textColor = roadShieldTextColor(line: line) ?? .black
             let imageName = "\(shield)-\(reflen)"
             currentShieldName = roadShieldAttributedText(for: ref, textColor: textColor, imageName: imageName)

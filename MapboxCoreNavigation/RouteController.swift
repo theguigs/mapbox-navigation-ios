@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import MapboxCommon
 import MapboxNavigationNative
 import MapboxMobileEvents
 import MapboxDirections
@@ -65,7 +66,7 @@ open class RouteController: NSObject {
     
     var userSnapToStepDistanceFromManeuver: CLLocationDistance?
     
-    var previousArrivalWaypoint: Waypoint?
+    var previousArrivalWaypoint: MapboxDirections.Waypoint?
     
     var isFirstLocation: Bool = true
     
@@ -214,9 +215,13 @@ open class RouteController: NSObject {
             let routeJSONString = String(data: routeData, encoding: .utf8) else {
             return
         }
+        let waypoints = progress.routeOptions.waypoints.map {
+            MapboxNavigationNative.Waypoint(coordinate: $0.coordinate, isSilent: !$0.separatesLegs)
+        }
         // TODO: Add support for alternative route
         let activeGuidanceOptions = ActiveGuidanceOptions(mode: mode(progress.routeOptions.profileIdentifier),
-                                                          geometryEncoding: geometryEncoding(progress.routeOptions.shapeFormat))
+                                                          geometryEncoding: geometryEncoding(progress.routeOptions.shapeFormat),
+                                                          waypoints: waypoints)
         navigator.setRouteForRouteResponse(routeJSONString, route: 0, leg: UInt32(routeProgress.legIndex), options: activeGuidanceOptions)
     }
     
@@ -242,7 +247,7 @@ open class RouteController: NSObject {
         let status = navigator.status(at: location.timestamp)
         
         // Notify observers if the step’s remaining distance has changed.
-        update(progress: routeProgress, with: CLLocation(status.location), rawLocation: location)
+        update(progress: routeProgress, with: CLLocation(status.location), rawLocation: location, upcomingRouteAlerts: status.upcomingRouteAlerts)
         
         let willReroute = !userIsOnRoute(location, status: status) && delegate?.router(self, shouldRerouteFrom: location)
             ?? DefaultBehavior.shouldRerouteFromLocation
@@ -336,8 +341,9 @@ open class RouteController: NSObject {
         }
     }
     
-    private func update(progress: RouteProgress, with location: CLLocation, rawLocation: CLLocation) {
+    private func update(progress: RouteProgress, with location: CLLocation, rawLocation: CLLocation, upcomingRouteAlerts routeAlerts: [UpcomingRouteAlert]) {
         progress.updateDistanceTraveled(with: rawLocation)
+        progress.upcomingRouteAlerts = routeAlerts.map { RouteAlert($0) }
         
         //Fire the delegate method
         delegate?.router(self, didUpdate: progress, with: location, rawLocation: rawLocation)
