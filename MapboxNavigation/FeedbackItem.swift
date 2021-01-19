@@ -7,7 +7,6 @@ extension UIImage {
     }
 }
 
-
 public extension FeedbackType {
 
     // TODO: Localize these strings
@@ -33,6 +32,8 @@ public extension FeedbackType {
             return NSLocalizedString("INCORRECT_VISUAL_LANE_GUIDANCE_INCORRECT_FEEDBACK", bundle: .mapboxNavigation, value: "Lane guidance incorrect", comment: "Specific route feedback that the wrong lane was specified.")
         case .incorrectVisual(.roadKnownByDifferentName):
             return NSLocalizedString("INCORRECT_VISUAL_ROAD_NAME_DIFFERENT_FEEDBACK", bundle: .mapboxNavigation, value: "Road known by different name", comment: "Specific route feedback that a road is known by another name.")
+        case .incorrectVisual(.incorrectSpeedLimit):
+            return NSLocalizedString("INCORRECT_SPEED_LIMIT", bundle: .mapboxNavigation, value: "Speed limit incorrect", comment: "Specific route feedback that a speed limit is incorrect.")
         case .incorrectVisual(.other):
             return NSLocalizedString("INCORRECT_VISUAL_OTHER_FEEDBACK", bundle: .mapboxNavigation, value: "Other", comment: "Specific route feedback that a visual instruction problem was encountered but not listed as a choice.")
         case .confusingAudio(.none):
@@ -93,31 +94,30 @@ public extension FeedbackType {
         var imageName = ""
 
         switch self {
-            case .general:
-                imageName = "feedback"
-            case .incorrectVisual(_):
-                imageName = "incorrect_visual"
-            case .confusingAudio(_):
-                imageName = "confusing_audio"
-            case .routeQuality(_):
-                imageName = "route_quality"
-            case .illegalRoute(_):
-                imageName = "illegal_route"
-            case .roadClosure(_):
-                imageName = "road_closure"
-            case .positioning(_):
-                imageName = "positioning"
+        case .general:
+            imageName = "feedback"
+        case .incorrectVisual(_):
+            imageName = "incorrect_visual"
+        case .confusingAudio(_):
+            imageName = "confusing_audio"
+        case .routeQuality(_):
+            imageName = "route_quality"
+        case .illegalRoute(_):
+            imageName = "illegal_route"
+        case .roadClosure(_):
+            imageName = "road_closure"
+        case .positioning(_):
+            imageName = "positioning"
         }
 
         return .feedbackImage(named: imageName)
     }
 
-
     /// Generates a `FeedbackItem` for a given `FeedbackType`
     /// - Returns: A `FeedbackItem` model object used to render UI
     func generateFeedbackItem() -> FeedbackItem {
         return FeedbackItem(title: self.title, image: self.image, feedbackType: self)
-   }
+    }
 }
 
 /**

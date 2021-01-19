@@ -15,6 +15,24 @@ class RouteMapViewController: UIViewController {
     var topBannerContainerView: BannerContainerView { return navigationView.topBannerContainerView }
     var bottomBannerContainerView: BannerContainerView { return navigationView.bottomBannerContainerView }
     
+    var floatingButtonsPosition: MapOrnamentPosition {
+        get {
+            return navigationView.floatingButtonsPosition
+        }
+        set {
+            navigationView.floatingButtonsPosition = newValue
+        }
+    }
+    
+    var floatingButtons: [UIButton]? {
+        get {
+            return navigationView.floatingButtons
+        }
+        set {
+            navigationView.floatingButtons = newValue
+        }
+    }
+    
     lazy var endOfRouteViewController: EndOfRouteViewController = {
         let storyboard = UIStoryboard(name: "Navigation", bundle: .mapboxNavigation)
         let viewController = storyboard.instantiateViewController(withIdentifier: "EndOfRouteViewController") as! EndOfRouteViewController
@@ -97,7 +115,11 @@ class RouteMapViewController: UIViewController {
         return UIEdgeInsets(top: topBannerContainerView.bounds.height, left: 20, bottom: bottomBannerContainerView.bounds.height, right: 20)
     }
     
-    var routeLineTracksTraversal = false
+    var routeLineTracksTraversal = false {
+        didSet {
+            mapView.routeLineTracksTraversal = routeLineTracksTraversal
+        }
+    }
 
     typealias LabelRoadNameCompletionHandler = (_ defaultRaodNameAssigned: Bool) -> Void
 
@@ -105,7 +127,7 @@ class RouteMapViewController: UIViewController {
     
     /**
      A Boolean value that determines whether the map altitude should change based on internal conditions.
-    */
+     */
     var suppressAutomaticAltitudeChanges: Bool = false
 
     convenience init(navigationService: NavigationService, delegate: RouteMapViewControllerDelegate? = nil, topBanner: ContainerViewController, bottomBanner: ContainerViewController) {
@@ -131,7 +153,6 @@ class RouteMapViewController: UIViewController {
         bottomContainer.backgroundColor = .clear
         
         view.bringSubviewToFront(topBannerContainerView)
-
     }
 
     override func loadView() {
@@ -209,11 +230,13 @@ class RouteMapViewController: UIViewController {
 
     func resumeNotifications() {
         NotificationCenter.default.addObserver(self, selector: #selector(applicationWillEnterForeground(notification:)), name: UIApplication.willEnterForegroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(orientationDidChange(_:)), name: UIDevice.orientationDidChangeNotification, object: nil)
         subscribeToKeyboardNotifications()
     }
 
     func suspendNotifications() {
         NotificationCenter.default.removeObserver(self, name: UIApplication.willEnterForegroundNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
         unsubscribeFromKeyboardNotifications()
     }
 
@@ -231,7 +254,6 @@ class RouteMapViewController: UIViewController {
         mapView.tracksUserCourse = true
         mapView.enableFrameByFrameCourseViewTracking(for: 3)
         isInOverviewMode = false
-
         
         mapView.updateCourseTracking(location: mapView.userLocationForCourseTracking)
         updateCameraAltitude(for: router.routeProgress)
@@ -255,10 +277,11 @@ class RouteMapViewController: UIViewController {
     @objc func toggleOverview(_ sender: Any) {
         mapView.enableFrameByFrameCourseViewTracking(for: 3)
         if let shape = router.route.shape,
-            let userLocation = router.location {
+           let userLocation = router.location {
             mapView.setOverheadCameraView(from: userLocation, along: shape, for: contentInset(forOverviewing: true))
         }
         isInOverviewMode = true
+        updateMapViewComponents()
     }
 
     @objc func toggleMute(_ sender: UIButton) {
@@ -282,7 +305,6 @@ class RouteMapViewController: UIViewController {
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         mapView.enableFrameByFrameCourseViewTracking(for: 3)
-        navigationView.reinstallRequiredConstraints()
     }
 
     override func viewDidLayoutSubviews() {
@@ -298,10 +320,16 @@ class RouteMapViewController: UIViewController {
     func updateMapViewContentInsets(animated: Bool = false, completion: CompletionHandler? = nil) {
         mapView.setContentInset(contentInset(forOverviewing: isInOverviewMode), animated: animated, completionHandler: completion)
         mapView.setNeedsUpdateConstraints()
+        
+        updateMapViewComponents()
     }
 
     @objc func applicationWillEnterForeground(notification: NSNotification) {
         mapView.updateCourseTracking(location: router.location, animated: false)
+    }
+    
+    @objc func orientationDidChange(_ notification: Notification) {
+        updateMapViewComponents()
     }
 
     func updateMapOverlays(for routeProgress: RouteProgress) {
@@ -349,6 +377,41 @@ class RouteMapViewController: UIViewController {
     
     @objc func resetFrameRate(_ sender: UIGestureRecognizer) {
         mapView.preferredFramesPerSecond = NavigationMapView.FrameIntervalOptions.defaultFramesPerSecond
+    }
+    
+    /**
+     Method updates `logoView` and `attributionButton` margins to prevent incorrect alignment
+     reported in https://github.com/mapbox/mapbox-navigation-ios/issues/2561. To be able to successfully update margins
+     `RouteMapViewController.automaticallyAdjustsScrollViewInsets` should be set to `true` and then switched back to `false`
+     to prevent spontaneous changes to `MGLMapView.contentInset`.
+     */
+    func updateMapViewComponents() {
+        // FIXME: Current implementation is considered as a workaround of Mapbox Maps SDK issue reported in:
+        // https://github.com/mapbox/mapbox-gl-native-ios/issues/533 and should be revised after root cause is fixed.
+        
+        automaticallyAdjustsScrollViewInsets = true
+        
+        let bottomBannerHeight = bottomBannerContainerView.bounds.height
+        let bottomBannerVerticalOffset = UIScreen.main.bounds.height - bottomBannerHeight - bottomBannerContainerView.frame.origin.y
+        let defaultOffset: CGFloat = 10.0
+        let x: CGFloat = defaultOffset
+        let y: CGFloat = bottomBannerHeight + defaultOffset + bottomBannerVerticalOffset
+        
+        mapView.logoViewPosition = .bottomLeft
+        if #available(iOS 11.0, *) {
+            mapView.logoViewMargins = CGPoint(x: x, y: y - view.safeAreaInsets.bottom)
+        } else {
+            mapView.logoViewMargins = CGPoint(x: x, y: y)
+        }
+        
+        mapView.attributionButtonPosition = .bottomRight
+        if #available(iOS 11.0, *) {
+            mapView.attributionButtonMargins = CGPoint(x: x, y: y - view.safeAreaInsets.bottom)
+        } else {
+            mapView.attributionButtonMargins = CGPoint(x: x, y: y)
+        }
+        
+        automaticallyAdjustsScrollViewInsets = false
     }
     
     func contentInset(forOverviewing overviewing: Bool) -> UIEdgeInsets {
@@ -455,7 +518,7 @@ class RouteMapViewController: UIViewController {
         guard waypoint.name == nil else { return populated(waypoint) }
         let location = CLLocation(latitude: waypoint.coordinate.latitude, longitude: waypoint.coordinate.longitude)
         CLGeocoder().reverseGeocodeLocation(location) { (places, error) in
-        guard let place = places?.first, let placeName = place.name, error == nil else { return }
+            guard let place = places?.first, let placeName = place.name, error == nil else { return }
             let named = Waypoint(coordinate: waypoint.coordinate, name: placeName)
             return populated(named)
         }
@@ -491,6 +554,8 @@ extension RouteMapViewController: NavigationComponent {
         }
         
         if routeLineTracksTraversal {
+            mapView.updateUpcomingRoutePointIndex(routeProgress: progress)
+            mapView.updateTraveledRouteLine(location.coordinate)
             mapView.updateRoute(progress)
         }
         
@@ -533,6 +598,8 @@ extension RouteMapViewController: NavigationComponent {
     func navigationService(_ service: NavigationService, didRefresh routeProgress: RouteProgress) {
         mapView.show([routeProgress.route], legIndex: routeProgress.legIndex)
         if routeLineTracksTraversal {
+            mapView.updateUpcomingRoutePointIndex(routeProgress: routeProgress)
+            mapView.updateTraveledRouteLine(router.location?.coordinate)
             mapView.updateRoute(routeProgress)
         }
     }
@@ -663,15 +730,15 @@ extension RouteMapViewController: NavigationViewDelegate {
 
     func labelCurrentRoadFeature(at location: CLLocation) {
         guard let style = mapView.style, let stepShape = router.routeProgress.currentLegProgress.currentStep.shape, !stepShape.coordinates.isEmpty else {
-                return
+            return
         }
 
         let closestCoordinate = location.coordinate
         let roadLabelStyleLayerIdentifier = "\(identifierNamespace).roadLabels"
         var streetsSources: [MGLVectorTileSource] = style.sources.compactMap {
             $0 as? MGLVectorTileSource
-            }.filter {
-                $0.isMapboxStreets
+        }.filter {
+            $0.isMapboxStreets
         }
 
         // Add Mapbox Streets if the map does not already have it
@@ -761,8 +828,8 @@ extension RouteMapViewController: NavigationViewDelegate {
         var currentShieldName: NSAttributedString?, currentRoadName: String?
 
         if let ref = line.attribute(forKey: "ref") as? String,
-            let shield = line.attribute(forKey: "shield") as? String,
-            let reflen = line.attribute(forKey: "reflen") as? Int {
+           let shield = line.attribute(forKey: "shield") as? String,
+           let reflen = line.attribute(forKey: "reflen") as? Int {
             let textColor = roadShieldTextColor(line: line) ?? .black
             let imageName = "\(shield)-\(reflen)"
             currentShieldName = roadShieldAttributedText(for: ref, textColor: textColor, imageName: imageName)
