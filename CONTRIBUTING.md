@@ -40,7 +40,7 @@ To build this SDK, you need Xcode 11.4.1 and [Carthage](https://github.com/Carth
 
 ## Testing the SDK
 
-It is important to test the SDK using the `iPhone 8 Plus` simulator for the `FBSnapshotter` tests.
+To test the SDK, check the target and simulator. It is important to test the SDK using the `iPhone 8 Plus` simulator for the `FBSnapshotter` tests.
 
 ## Opening a pull request
 
